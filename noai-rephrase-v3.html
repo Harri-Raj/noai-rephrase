@@ -1,0 +1,1797 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>NoAI Rephrase</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,700;0,900;1,400;1,700&family=Crimson+Pro:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+/* ═══════════════════════════════════════════════════
+   TOKENS
+═══════════════════════════════════════════════════ */
+[data-theme="dark"] {
+  --ink:       #06060A;
+  --ink2:      #0D0D12;
+  --ink3:      #14141A;
+  --ink4:      #1E1E26;
+  --ink5:      #282832;
+  --line:      #252530;
+  --line2:     #30303C;
+  --mist:      #40404E;
+  --ash:       #60606E;
+  --stone:     #888898;
+  --parchment: #C8C4B8;
+  --cream:     #E8E4DC;
+  --white:     #F4F2EE;
+  --green:     #1A6B44;
+  --green-hi:  #228855;
+  --green-lo:  #124D30;
+  --green-gl:  rgba(26,107,68,.18);
+  --gold:      #B8922A;
+  --gold-hi:   #CCA840;
+  --gold-gl:   rgba(184,146,42,.12);
+  --red:       #883333;
+  --amber:     #8B6020;
+  --blur:      rgba(6,6,10,.82);
+  --panel:     rgba(14,14,20,.96);
+}
+[data-theme="light"] {
+  --ink:       #F8F6F2;
+  --ink2:      #EEEAE4;
+  --ink3:      #E4E0D8;
+  --ink4:      #D8D4CC;
+  --ink5:      #CCCAC0;
+  --line:      #D0CCC4;
+  --line2:     #C4BEB4;
+  --mist:      #A8A49C;
+  --ash:       #807C74;
+  --stone:     #58544E;
+  --parchment: #2C2A24;
+  --cream:     #1A1814;
+  --white:     #0C0A08;
+  --green:     #165C38;
+  --green-hi:  #1A7044;
+  --green-lo:  #E4F0EC;
+  --green-gl:  rgba(22,92,56,.12);
+  --gold:      #8A6818;
+  --gold-hi:   #A07C24;
+  --gold-gl:   rgba(138,104,24,.1);
+  --red:       #883333;
+  --amber:     #7A5018;
+  --blur:      rgba(248,246,242,.88);
+  --panel:     rgba(238,234,228,.97);
+}
+
+/* ═══════════════════════════════════════════════════ RESET */
+*{box-sizing:border-box;margin:0;padding:0;}
+html{overflow-x:hidden;scroll-behavior:smooth;}
+body{
+  background:var(--ink);color:var(--cream);
+  font-family:'Crimson Pro',Georgia,serif;font-size:18px;line-height:1.6;
+  -webkit-font-smoothing:antialiased;cursor:none;overflow-x:hidden;
+  transition:background .5s,color .5s;
+}
+::-webkit-scrollbar{width:3px;}
+::-webkit-scrollbar-track{background:var(--ink);}
+::-webkit-scrollbar-thumb{background:var(--mist);}
+::selection{background:var(--green);color:var(--white);}
+
+/* ═══════════════════════════════════════════════════ CURSOR */
+#C,.CR{position:fixed;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);border-radius:50%;transition:opacity .3s;}
+#C{width:7px;height:7px;background:var(--gold-hi);}
+.CR{width:28px;height:28px;border:1px solid var(--gold);opacity:.4;transition:width .4s,height .4s,opacity .4s;}
+body:hover #C{opacity:1;}
+
+/* ═══════════════════════════════════════════════════ NOISE */
+body::before{
+  content:'';position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.025;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+}
+
+/* ═══════════════════════════════════════════════════ NAV */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:500;height:60px;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 40px;
+  border-bottom:1px solid var(--line);
+  background:var(--blur);backdrop-filter:blur(24px) saturate(160%);
+  transition:all .4s;
+}
+.nav-brand{
+  display:flex;align-items:center;gap:0;text-decoration:none;
+  font-family:'Playfair Display',serif;font-size:15px;font-weight:700;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--white);
+  transition:opacity .2s;
+}
+.nav-brand:hover{opacity:.7;}
+.nav-brand-mark{
+  width:24px;height:24px;background:var(--green);margin-right:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:900;color:var(--white);letter-spacing:0;
+}
+.nav-mid{display:flex;gap:32px;}
+.nav-mid a{
+  font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--stone);text-decoration:none;
+  transition:color .2s;font-family:'DM Mono',monospace;font-weight:300;
+}
+.nav-mid a:hover{color:var(--cream);}
+.nav-right{display:flex;align-items:center;gap:16px;}
+.theme-btn{
+  width:32px;height:32px;border-radius:50%;
+  border:1px solid var(--line2);background:none;cursor:none;
+  color:var(--stone);font-size:13px;display:flex;align-items:center;
+  justify-content:center;transition:all .3s;
+}
+.theme-btn:hover{border-color:var(--gold);color:var(--gold);}
+.btn-sign{
+  font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--stone);background:none;border:none;cursor:none;
+  font-family:'DM Mono',monospace;font-weight:300;transition:color .2s;
+}
+.btn-sign:hover{color:var(--cream);}
+.btn-start{
+  font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  padding:8px 20px;background:var(--green);color:var(--white);
+  border:none;cursor:none;font-family:'DM Mono',monospace;
+  transition:background .2s;
+}
+.btn-start:hover{background:var(--green-hi);}
+
+/* ═══════════════════════════════════════════════════ MASTHEAD */
+.masthead{
+  position:relative;min-height:100vh;
+  display:flex;flex-direction:column;
+  justify-content:flex-end;
+  padding:0 0 80px 0;
+  overflow:hidden;z-index:10;
+}
+.masthead-bg{
+  position:absolute;inset:0;z-index:0;
+  background:radial-gradient(ellipse 80% 60% at 20% 80%,var(--green-gl),transparent),
+             radial-gradient(ellipse 60% 40% at 80% 20%,var(--gold-gl),transparent);
+}
+/* The big brand statement */
+.brand-statement{
+  position:relative;z-index:2;
+  padding:0 40px;
+  border-bottom:1px solid var(--line);
+  padding-bottom:40px;
+}
+.brand-line-top{
+  display:flex;align-items:flex-end;justify-content:space-between;
+  margin-bottom:0;
+}
+.brand-name-huge{
+  font-family:'Playfair Display',serif;font-weight:900;
+  font-size:clamp(5rem,13vw,13rem);line-height:.88;
+  letter-spacing:-.02em;color:var(--white);
+  user-select:none;
+}
+.brand-name-huge em{
+  font-style:italic;color:var(--gold-hi);
+  display:block;
+}
+.brand-side{
+  display:flex;flex-direction:column;align-items:flex-end;
+  gap:8px;padding-bottom:12px;max-width:280px;text-align:right;
+}
+.brand-tagline{
+  font-family:'Crimson Pro',serif;font-size:19px;font-style:italic;
+  color:var(--stone);line-height:1.4;
+}
+.brand-year{
+  font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--mist);
+}
+.brand-meta-row{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-top:32px;
+}
+.brand-descriptor{
+  font-size:12px;letter-spacing:.25em;text-transform:uppercase;
+  color:var(--gold);font-family:'DM Mono',monospace;
+}
+.hero-cta-row{display:flex;align-items:center;gap:20px;}
+.hero-cta{
+  font-size:12px;letter-spacing:.16em;text-transform:uppercase;
+  font-family:'DM Mono',monospace;padding:12px 36px;
+  background:var(--green);color:var(--white);border:none;cursor:none;
+  transition:all .25s;
+}
+.hero-cta:hover{background:var(--green-hi);transform:translateY(-2px);}
+.hero-cta-ghost{
+  font-size:12px;letter-spacing:.16em;text-transform:uppercase;
+  font-family:'DM Mono',monospace;padding:12px 36px;
+  background:none;color:var(--stone);border:1px solid var(--line2);cursor:none;
+  transition:all .25s;
+}
+.hero-cta-ghost:hover{border-color:var(--gold);color:var(--gold);}
+
+/* Stats strip */
+.stats-strip{
+  display:flex;border-top:1px solid var(--line);
+  position:relative;z-index:2;
+}
+.stats-strip-item{
+  flex:1;padding:28px 40px;border-right:1px solid var(--line);
+  display:flex;flex-direction:column;gap:4px;
+}
+.stats-strip-item:last-child{border-right:none;}
+.stats-strip-num{
+  font-family:'Playfair Display',serif;font-size:36px;font-weight:400;
+  color:var(--white);letter-spacing:-.01em;
+}
+.stats-strip-label{
+  font-size:11px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--ash);font-family:'DM Mono',monospace;
+}
+
+/* Ticker */
+.ticker{
+  border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+  overflow:hidden;padding:10px 0;background:var(--ink2);
+  position:relative;z-index:2;
+}
+.ticker-inner{
+  display:flex;gap:64px;white-space:nowrap;
+  animation:ticker 28s linear infinite;
+}
+.ticker-item{
+  display:flex;align-items:center;gap:12px;
+  font-size:11px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--mist);font-family:'DM Mono',monospace;
+}
+.ticker-dot{width:3px;height:3px;border-radius:50%;background:var(--gold);}
+
+/* ═══════════════════════════════════════════════════ MAIN TOOL */
+.tool-section{
+  padding:80px 40px 0;position:relative;z-index:10;
+  max-width:1440px;margin:0 auto;
+}
+.tool-header{
+  display:flex;align-items:flex-end;justify-content:space-between;
+  margin-bottom:32px;border-bottom:1px solid var(--line);padding-bottom:20px;
+  flex-wrap:wrap;gap:16px;
+}
+.tool-header-left{}
+.tool-eyebrow{
+  font-size:11px;letter-spacing:.28em;text-transform:uppercase;
+  color:var(--gold);font-family:'DM Mono',monospace;margin-bottom:6px;
+}
+.tool-title{
+  font-family:'Playfair Display',serif;font-size:28px;font-weight:400;
+  color:var(--white);line-height:1.1;
+}
+.tool-header-right{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+
+/* Pipeline mode tabs */
+.pipe-tabs{display:flex;border:1px solid var(--line2);}
+.pipe-tab{
+  padding:8px 20px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+  font-family:'DM Mono',monospace;background:none;border:none;
+  border-right:1px solid var(--line2);color:var(--stone);cursor:none;
+  transition:all .2s;
+}
+.pipe-tab:last-child{border-right:none;}
+.pipe-tab.on{background:var(--ink4);color:var(--cream);}
+.pipe-tab.on.research-mode{background:rgba(26,107,68,.15);color:var(--green-hi);}
+
+/* Research badge */
+.r-badge{
+  font-size:9px;letter-spacing:.15em;padding:2px 7px;
+  background:var(--gold-gl);border:1px solid var(--gold);color:var(--gold);
+  font-family:'DM Mono',monospace;text-transform:uppercase;vertical-align:middle;
+  margin-left:6px;
+}
+
+/* Controls row */
+.ctrl-row{
+  display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;
+}
+.ctrl-seg{display:flex;border:1px solid var(--line);}
+.ctrl-seg-btn{
+  padding:5px 14px;font-size:10px;letter-spacing:.15em;text-transform:uppercase;
+  font-family:'DM Mono',monospace;background:none;border:none;
+  border-right:1px solid var(--line);color:var(--ash);cursor:none;transition:all .2s;
+}
+.ctrl-seg-btn:last-child{border-right:none;}
+.ctrl-seg-btn.on{background:var(--ink5);color:var(--cream);}
+.ctrl-label{
+  font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--mist);font-family:'DM Mono',monospace;
+}
+select.ctrl-sel{
+  padding:5px 28px 5px 12px;font-size:11px;
+  background:var(--ink2);border:1px solid var(--line);
+  color:var(--stone);font-family:'DM Mono',monospace;
+  appearance:none;cursor:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%2360606E'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 8px center;
+}
+select.ctrl-sel:focus{outline:none;border-color:var(--gold);}
+
+/* 8 pills */
+.eight-pills{
+  display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;
+}
+.e-pill{
+  font-size:9px;letter-spacing:.14em;text-transform:uppercase;
+  padding:3px 9px;border:1px solid var(--line);color:var(--mist);
+  font-family:'DM Mono',monospace;transition:all .3s;
+}
+.e-pill.lit{border-color:var(--green-hi);color:var(--green-hi);background:rgba(26,107,68,.07);}
+.e-pill.gold-lit{border-color:var(--gold);color:var(--gold);background:var(--gold-gl);}
+
+/* Pipeline visual */
+.pipeline-steps{
+  display:flex;align-items:center;gap:0;margin-bottom:20px;overflow-x:auto;
+  border:1px solid var(--line);background:var(--ink2);
+}
+.pipe-step{
+  display:flex;align-items:center;gap:10px;padding:10px 16px;
+  border-right:1px solid var(--line);flex-shrink:0;
+  transition:background .3s;
+}
+.pipe-step:last-child{border-right:none;}
+.pipe-step.active{background:var(--ink4);}
+.pipe-step.done{background:rgba(26,107,68,.08);}
+.pipe-step-num{
+  font-family:'DM Mono',monospace;font-size:10px;color:var(--mist);
+  width:16px;flex-shrink:0;
+}
+.pipe-step.active .pipe-step-num{color:var(--gold);}
+.pipe-step.done .pipe-step-num{color:var(--green-hi);}
+.pipe-step-name{
+  font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  font-family:'DM Mono',monospace;color:var(--ash);
+}
+.pipe-step.active .pipe-step-name{color:var(--cream);}
+.pipe-step.done .pipe-step-name{color:var(--parchment);}
+.pipe-sep{color:var(--mist);padding:0 4px;font-size:10px;}
+
+/* Editors */
+.editors{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line);}
+@media(max-width:860px){.editors{grid-template-columns:1fr;}}
+.editor-pane{background:var(--ink2);display:flex;flex-direction:column;position:relative;}
+.editor-pane.output-active{background:var(--ink3);}
+.pane-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 18px;border-bottom:1px solid var(--line);background:var(--ink3);
+}
+.pane-label{
+  font-size:10px;letter-spacing:.22em;text-transform:uppercase;
+  font-family:'DM Mono',monospace;color:var(--ash);
+}
+.pane-meta{
+  font-family:'DM Mono',monospace;font-size:10px;color:var(--mist);
+}
+.pane-meta.warn{color:var(--amber);}
+textarea.main-ta{
+  flex:1;width:100%;padding:22px 22px;background:transparent;
+  border:none;outline:none;color:var(--parchment);resize:none;
+  font-family:'Crimson Pro',serif;font-size:18px;line-height:1.72;
+  caret-color:var(--gold-hi);min-height:380px;
+  transition:color .3s;
+}
+textarea.main-ta::placeholder{color:var(--mist);font-style:italic;}
+.output-text{
+  flex:1;padding:22px;min-height:380px;
+  font-family:'Crimson Pro',serif;font-size:18px;line-height:1.72;
+  color:var(--parchment);
+}
+.output-empty{
+  height:100%;min-height:380px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:12px;text-align:center;padding:40px;
+}
+.output-empty-brand{
+  font-family:'Playfair Display',serif;font-size:28px;font-weight:400;
+  font-style:italic;color:var(--line2);letter-spacing:.02em;
+}
+.output-empty-sub{font-size:13px;color:var(--mist);}
+
+/* Loading */
+.loading-panel{
+  flex:1;min-height:380px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:20px;
+}
+.l-dots{display:flex;gap:8px;}
+.l-dot{
+  width:6px;height:6px;border-radius:50%;background:var(--green);
+  animation:ldot 1.2s ease-in-out infinite;
+}
+.l-dot:nth-child(2){animation-delay:.2s;}
+.l-dot:nth-child(3){animation-delay:.4s;}
+.l-step-txt{
+  font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--green-hi);
+}
+.l-note{font-size:14px;font-style:italic;color:var(--ash);}
+
+.pane-foot{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 18px;border-top:1px solid var(--line);background:var(--ink3);
+}
+.pane-foot-left{font-size:11px;font-style:italic;color:var(--mist);}
+.copy-btn-sm{
+  display:flex;align-items:center;gap:6px;
+  font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  font-family:'DM Mono',monospace;color:var(--gold);
+  background:none;border:none;cursor:none;transition:opacity .2s;
+}
+.copy-btn-sm:hover{opacity:.7;}
+
+/* Simplified toggle */
+.simp-strip{
+  border-top:1px solid var(--line);overflow:hidden;max-height:0;
+  transition:max-height .5s cubic-bezier(0.4,0,0.2,1);
+  background:var(--ink);
+}
+.simp-strip.open{max-height:300px;}
+.simp-strip-inner{padding:14px 22px;}
+.simp-strip-label{
+  font-size:9px;letter-spacing:.22em;text-transform:uppercase;
+  font-family:'DM Mono',monospace;color:var(--mist);margin-bottom:6px;
+}
+.simp-strip-text{font-size:15px;font-style:italic;color:var(--ash);line-height:1.55;}
+.simp-toggle-btn{
+  font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  font-family:'DM Mono',monospace;color:var(--mist);
+  background:none;border:none;cursor:none;transition:color .2s;
+}
+.simp-toggle-btn:hover{color:var(--stone);}
+
+/* Humanize CTA */
+.humanize-row{
+  display:flex;align-items:center;justify-content:center;
+  gap:20px;padding:28px 0;
+}
+.btn-hum{
+  display:flex;align-items:center;gap:12px;
+  padding:16px 56px;background:var(--green);color:var(--white);
+  font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.2em;
+  text-transform:uppercase;border:none;cursor:none;
+  transition:all .3s cubic-bezier(0.34,1.56,0.64,1);min-width:220px;
+  justify-content:center;position:relative;overflow:hidden;
+}
+.btn-hum::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,transparent 40%,rgba(255,255,255,.06));
+  opacity:0;transition:opacity .3s;
+}
+.btn-hum:hover{transform:translateY(-3px);box-shadow:0 16px 48px var(--green-gl);}
+.btn-hum:hover::after{opacity:1;}
+.btn-hum:disabled{background:var(--ink5);color:var(--mist);cursor:not-allowed;transform:none;box-shadow:none;}
+.hum-shortcut{
+  font-size:10px;letter-spacing:.12em;font-family:'DM Mono',monospace;color:var(--mist);
+}
+
+/* ═══════════════════════════════════════════════════ DASHBOARD */
+.dashboard{
+  max-width:1440px;margin:0 auto;
+  padding:0 40px 60px;
+}
+.dash-divider{
+  display:flex;align-items:center;gap:16px;margin:8px 0 28px;
+}
+.dash-div-line{
+  flex:1;height:1px;
+  background:linear-gradient(90deg,transparent,var(--line),transparent);
+}
+.dash-div-text{
+  font-size:9px;letter-spacing:.3em;text-transform:uppercase;
+  font-family:'DM Mono',monospace;color:var(--mist);
+}
+
+/* Score dashboard — main */
+.score-dashboard{
+  display:grid;grid-template-columns:1fr 1fr 300px;gap:1px;
+  background:var(--line);border:1px solid var(--line);
+  margin-bottom:12px;
+}
+@media(max-width:1100px){.score-dashboard{grid-template-columns:1fr 1fr;}}
+@media(max-width:700px){.score-dashboard{grid-template-columns:1fr;}}
+
+.dash-panel{background:var(--ink2);padding:22px;position:relative;overflow:hidden;}
+.dash-panel-label{
+  font-size:9px;letter-spacing:.28em;text-transform:uppercase;
+  font-family:'DM Mono',monospace;color:var(--gold);margin-bottom:16px;
+}
+/* Big score numbers */
+.score-before-num,.score-after-num{
+  font-family:'Playfair Display',serif;font-weight:400;font-size:72px;
+  line-height:1;letter-spacing:-.02em;transition:color .5s;
+}
+.score-sub-row{display:flex;align-items:center;justify-content:space-between;margin-top:8px;}
+.score-change-label{
+  font-size:11px;font-style:italic;color:var(--stone);
+}
+.score-bar-wrap{margin-top:14px;}
+.score-bar-label{
+  font-size:9px;letter-spacing:.2em;text-transform:uppercase;
+  font-family:'DM Mono',monospace;color:var(--ash);
+  display:flex;justify-content:space-between;margin-bottom:5px;
+}
+.score-bar-track{
+  height:3px;background:var(--ink5);overflow:hidden;position:relative;
+}
+.score-bar-fill{
+  height:100%;transition:width 1.2s cubic-bezier(0.4,0,0.2,1);
+}
+/* Gauge visual for after score */
+.gauge-wrap{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:8px 0;gap:8px;
+}
+.gauge-svg{width:160px;height:90px;}
+.gauge-verdict{
+  font-size:13px;font-style:italic;color:var(--stone);text-align:center;
+}
+/* Right panel — mini stats */
+.mini-stats{
+  display:flex;flex-direction:column;gap:0;background:var(--ink2);
+}
+.mini-stat-row{
+  padding:14px 22px;border-bottom:1px solid var(--line);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.mini-stat-row:last-child{border-bottom:none;}
+.mini-stat-label{
+  font-size:9px;letter-spacing:.2em;text-transform:uppercase;
+  font-family:'DM Mono',monospace;color:var(--ash);
+}
+.mini-stat-val{
+  font-family:'Playfair Display',serif;font-size:22px;font-weight:400;
+  color:var(--cream);
+}
+.mini-stat-badge{
+  font-size:9px;letter-spacing:.12em;font-family:'DM Mono',monospace;
+  padding:2px 8px;border:1px solid;margin-top:2px;display:inline-block;
+}
+.mini-stat-badge.good{border-color:var(--green);color:var(--green-hi);}
+.mini-stat-badge.warn{border-color:var(--amber);color:var(--amber);}
+.mini-stat-badge.risk{border-color:var(--red);color:var(--red);}
+
+/* Diff section */
+.diff-section{
+  border:1px solid var(--line);background:var(--ink2);margin-bottom:12px;
+}
+.diff-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 20px;border-bottom:1px solid transparent;cursor:none;
+  transition:all .2s;
+}
+.diff-head:hover{background:var(--ink3);}
+.diff-head.open{border-bottom-color:var(--line);}
+.diff-head-label{
+  font-size:9px;letter-spacing:.22em;text-transform:uppercase;
+  font-family:'DM Mono',monospace;color:var(--ash);
+}
+.diff-chev{
+  font-size:12px;color:var(--mist);transition:transform .3s;
+}
+.diff-chev.open{transform:rotate(180deg);}
+.diff-body{
+  max-height:0;overflow:hidden;
+  transition:max-height .5s cubic-bezier(0.4,0,0.2,1);
+}
+.diff-body.open{max-height:500px;}
+.diff-inner{padding:20px;font-size:17px;line-height:1.75;color:var(--parchment);}
+.da{background:rgba(26,107,68,.22);color:#68D48A;border-radius:1px;padding:0 2px;}
+.dr{background:rgba(136,51,51,.18);color:#D48888;text-decoration:line-through;border-radius:1px;padding:0 2px;}
+.diff-legend-row{
+  display:flex;gap:20px;padding:10px 20px;border-top:1px solid var(--line);
+}
+.diff-leg{display:flex;align-items:center;gap:7px;font-size:10px;color:var(--stone);}
+.diff-leg-sw{width:10px;height:10px;border-radius:1px;}
+
+/* Nudge bar */
+.nudge-bar{
+  border:1px solid var(--green-lo);background:rgba(26,107,68,.05);
+  padding:16px 24px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;
+}
+.nudge-bar p:first-child{font-size:16px;color:var(--cream);}
+.nudge-bar p:last-child{font-size:13px;color:var(--stone);margin-top:2px;}
+.btn-nudge{
+  padding:10px 24px;background:var(--green);color:var(--white);
+  font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.16em;
+  text-transform:uppercase;border:none;cursor:none;white-space:nowrap;
+  transition:background .2s;flex-shrink:0;
+}
+.btn-nudge:hover{background:var(--green-hi);}
+
+/* ═══════════════════════════════════════════════════ 8 FEATURES */
+.features-block{
+  padding:100px 40px;border-top:1px solid var(--line);
+  background:var(--ink2);
+}
+.fb-inner{max-width:1440px;margin:0 auto;}
+.fb-header{
+  display:grid;grid-template-columns:1fr 1fr;gap:60px;
+  margin-bottom:60px;align-items:end;border-bottom:1px solid var(--line);
+  padding-bottom:40px;
+}
+@media(max-width:800px){.fb-header{grid-template-columns:1fr;gap:20px;}}
+.fb-h-left{}
+.fb-eyebrow{
+  font-size:10px;letter-spacing:.28em;text-transform:uppercase;
+  font-family:'DM Mono',monospace;color:var(--gold);margin-bottom:12px;
+}
+.fb-title{
+  font-family:'Playfair Display',serif;font-size:clamp(2.2rem,4vw,3.4rem);
+  font-weight:400;color:var(--white);line-height:1.1;
+}
+.fb-h-right{}
+.fb-desc{font-size:16px;color:var(--stone);line-height:1.65;max-width:420px;}
+
+.fb-grid{
+  display:grid;grid-template-columns:repeat(4,1fr);
+  gap:1px;background:var(--line);
+}
+@media(max-width:1000px){.fb-grid{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:500px){.fb-grid{grid-template-columns:1fr;}}
+.fb-item{
+  background:var(--ink2);padding:32px 28px;
+  transition:background .25s;cursor:default;
+}
+.fb-item:hover{background:var(--ink3);}
+.fb-num{
+  font-family:'DM Mono',monospace;font-size:10px;color:var(--green-hi);
+  margin-bottom:10px;letter-spacing:.1em;
+}
+.fb-rule{width:20px;height:1px;background:var(--green);margin-bottom:12px;}
+.fb-name{
+  font-family:'Playfair Display',serif;font-size:19px;font-weight:400;
+  color:var(--white);margin-bottom:8px;line-height:1.2;
+}
+.fb-body{font-size:14px;color:var(--stone);line-height:1.55;}
+
+/* ═══════════════════════════════════════════════════ HOW IT WORKS */
+.hiw{
+  padding:100px 40px;border-top:1px solid var(--line);
+  background:var(--ink);
+}
+.hiw-inner{max-width:1440px;margin:0 auto;display:grid;grid-template-columns:5fr 4fr;gap:80px;align-items:start;}
+@media(max-width:900px){.hiw-inner{grid-template-columns:1fr;gap:48px;}}
+.hiw-left{}
+.hiw-eyebrow{
+  font-size:10px;letter-spacing:.28em;text-transform:uppercase;
+  font-family:'DM Mono',monospace;color:var(--gold);margin-bottom:12px;
+}
+.hiw-title{
+  font-family:'Playfair Display',serif;font-size:clamp(2.2rem,4vw,3.2rem);
+  font-weight:400;color:var(--white);line-height:1.1;margin-bottom:12px;
+}
+.hiw-sub{font-size:16px;color:var(--stone);line-height:1.6;max-width:480px;}
+.hiw-steps{margin-top:40px;}
+.hiw-step{
+  display:flex;gap:20px;padding:22px 0;
+  border-top:1px solid var(--line);
+  transition:background .2s;
+}
+.hiw-step-n{
+  font-family:'DM Mono',monospace;font-size:11px;color:var(--green-hi);
+  min-width:30px;margin-top:3px;letter-spacing:.1em;
+}
+.hiw-step-title{
+  font-family:'Playfair Display',serif;font-size:19px;font-weight:400;
+  color:var(--cream);margin-bottom:5px;
+}
+.hiw-step-body{font-size:14px;color:var(--stone);line-height:1.6;}
+/* Pipeline diagram */
+.pipe-diagram{
+  display:flex;flex-direction:column;gap:0;
+  border:1px solid var(--line);background:var(--ink2);
+}
+.pd-card{
+  padding:16px 20px;border-bottom:1px solid var(--line);
+  position:relative;
+  transition:background .2s;
+}
+.pd-card:hover{background:var(--ink3);}
+.pd-card:last-child{border-bottom:none;}
+.pd-card::before{
+  content:'';position:absolute;left:0;top:0;bottom:0;width:2px;
+  background:var(--green);
+}
+.pd-card.gold-accent::before{background:var(--gold);}
+.pd-tag{
+  font-size:9px;letter-spacing:.22em;text-transform:uppercase;
+  font-family:'DM Mono',monospace;color:var(--gold);margin-bottom:3px;
+}
+.pd-card.gold-accent .pd-tag{color:var(--gold-hi);}
+.pd-name{
+  font-family:'Playfair Display',serif;font-size:16px;color:var(--cream);
+  margin-bottom:3px;font-weight:400;
+}
+.pd-body{font-size:12px;color:var(--stone);}
+.pd-arrow{
+  text-align:center;padding:6px;color:var(--mist);font-size:11px;
+  font-family:'DM Mono',monospace;letter-spacing:.1em;
+}
+
+/* ═══════════════════════════════════════════════════ RESEARCH SECTION */
+.research-block{
+  padding:100px 40px;border-top:1px solid var(--line);
+  background:var(--ink2);
+}
+.rb-inner{max-width:1440px;margin:0 auto;}
+.rb-header{
+  display:flex;align-items:flex-end;justify-content:space-between;
+  border-bottom:1px solid var(--line);padding-bottom:32px;margin-bottom:48px;
+  flex-wrap:wrap;gap:20px;
+}
+.rb-title-block{}
+.rb-badge{
+  display:inline-block;font-size:9px;letter-spacing:.2em;text-transform:uppercase;
+  font-family:'DM Mono',monospace;padding:4px 12px;
+  background:var(--gold-gl);border:1px solid var(--gold);color:var(--gold);
+  margin-bottom:10px;
+}
+.rb-title{
+  font-family:'Playfair Display',serif;font-size:clamp(2rem,4vw,3.2rem);
+  font-weight:400;color:var(--white);line-height:1.1;
+}
+.rb-right{max-width:400px;}
+.rb-desc{font-size:16px;color:var(--stone);line-height:1.65;}
+
+.rb-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);}
+@media(max-width:900px){.rb-grid{grid-template-columns:1fr;}}
+.rb-left{background:var(--ink2);padding:32px;}
+.rb-right-pane{background:var(--ink2);}
+.rb-feature{
+  display:flex;gap:14px;padding:16px 0;border-bottom:1px solid var(--line);
+}
+.rb-feature:last-child{border-bottom:none;}
+.rb-feat-icon{
+  width:28px;height:28px;border:1px solid var(--line2);background:var(--ink);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  font-size:10px;font-family:'DM Mono',monospace;color:var(--gold);
+}
+.rb-feat-title{
+  font-family:'Playfair Display',serif;font-size:16px;color:var(--cream);
+  margin-bottom:4px;font-weight:400;
+}
+.rb-feat-body{font-size:13px;color:var(--stone);line-height:1.5;}
+
+/* Paper mockup */
+.paper-mockup{padding:0;}
+.paper-top{
+  display:flex;align-items:center;gap:8px;
+  padding:12px 18px;border-bottom:1px solid var(--line);background:var(--ink3);
+}
+.paper-dot{width:6px;height:6px;border-radius:50%;background:var(--green);}
+.paper-title-sm{
+  font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+  font-family:'DM Mono',monospace;color:var(--ash);
+}
+.paper-body{padding:24px;font-size:15px;line-height:1.75;color:var(--parchment);}
+.paper-section{margin-bottom:22px;}
+.paper-section-label{
+  font-size:9px;letter-spacing:.25em;text-transform:uppercase;
+  font-family:'DM Mono',monospace;color:var(--gold);margin-bottom:8px;
+}
+.paper-text em{color:var(--cream);font-style:normal;}
+.paper-text{color:var(--parchment);}
+
+/* ═══════════════════════════════════════════════════ PRICING */
+.pricing-block{
+  padding:100px 40px;border-top:1px solid var(--line);
+  background:var(--ink);
+}
+.pricing-inner{max-width:1440px;margin:0 auto;}
+.pricing-head{
+  display:grid;grid-template-columns:1fr 1fr;gap:40px;
+  border-bottom:1px solid var(--line);padding-bottom:40px;margin-bottom:0;align-items:end;
+}
+@media(max-width:700px){.pricing-head{grid-template-columns:1fr;}}
+.pricing-title{
+  font-family:'Playfair Display',serif;font-size:clamp(2.2rem,4vw,3.2rem);
+  font-weight:400;color:var(--white);line-height:1.1;
+}
+.pricing-sub{font-size:16px;color:var(--stone);font-style:italic;}
+.pricing-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:1px;background:var(--line);border:1px solid var(--line);
+  margin-top:0;
+}
+@media(max-width:700px){.pricing-grid{grid-template-columns:1fr;gap:0;}}
+.plan{
+  background:var(--ink2);padding:40px 32px;
+  display:flex;flex-direction:column;position:relative;
+  transition:background .25s;
+}
+.plan:hover{background:var(--ink3);}
+.plan.feat{background:rgba(26,107,68,.07);}
+.plan-badge{
+  position:absolute;top:0;right:24px;
+  font-size:8px;letter-spacing:.2em;text-transform:uppercase;
+  font-family:'DM Mono',monospace;
+  background:var(--green);color:var(--white);padding:4px 10px;
+}
+.plan-name{
+  font-size:9px;letter-spacing:.25em;text-transform:uppercase;
+  font-family:'DM Mono',monospace;color:var(--stone);margin-bottom:16px;
+}
+.plan-price{
+  font-family:'Playfair Display',serif;font-size:56px;font-weight:400;
+  color:var(--white);line-height:1;margin-bottom:4px;
+}
+.plan-per{font-size:15px;color:var(--stone);}
+.plan-words{
+  font-family:'DM Mono',monospace;font-size:11px;color:var(--gold);
+  background:var(--gold-gl);border:1px solid rgba(184,146,42,.2);
+  padding:6px 12px;margin:16px 0;display:inline-block;
+}
+.plan-feats{flex:1;margin-bottom:24px;border-top:1px solid var(--line);padding-top:16px;}
+.plan-feat{
+  display:flex;gap:8px;font-size:13px;color:var(--parchment);
+  padding:5px 0;border-bottom:1px solid var(--line);
+}
+.plan-feat:last-child{border-bottom:none;}
+.plan-feat-chk{color:var(--green-hi);flex-shrink:0;font-size:11px;margin-top:2px;}
+.plan-cta{
+  width:100%;padding:13px;font-family:'DM Mono',monospace;font-size:10px;
+  letter-spacing:.18em;text-transform:uppercase;border:none;cursor:none;
+  text-align:center;transition:all .2s;
+}
+.plan-cta.solid{background:var(--green);color:var(--white);}
+.plan-cta.solid:hover{background:var(--green-hi);}
+.plan-cta.outline{background:none;color:var(--gold);border:1px solid var(--line2);}
+.plan-cta.outline:hover{border-color:var(--gold);}
+
+/* ═══════════════════════════════════════════════════ FOOTER */
+footer{
+  padding:60px 40px 32px;border-top:1px solid var(--line);
+  background:var(--ink2);
+}
+.footer-inner{max-width:1440px;margin:0 auto;}
+.footer-top{
+  display:flex;justify-content:space-between;gap:40px;
+  border-bottom:1px solid var(--line);padding-bottom:48px;margin-bottom:24px;
+  flex-wrap:wrap;
+}
+.footer-brand-block .f-name{
+  font-family:'Playfair Display',serif;font-size:32px;font-weight:400;
+  color:var(--white);margin-bottom:4px;
+}
+.footer-brand-block .f-name em{color:var(--gold);font-style:italic;}
+.footer-brand-block .f-tag{font-size:14px;color:var(--stone);font-style:italic;}
+.footer-cols{display:flex;gap:56px;flex-wrap:wrap;}
+.footer-col-head{
+  font-size:9px;letter-spacing:.25em;text-transform:uppercase;
+  font-family:'DM Mono',monospace;color:var(--mist);margin-bottom:14px;
+}
+.footer-col a{
+  display:block;font-size:14px;color:var(--stone);text-decoration:none;
+  margin-bottom:8px;transition:color .2s;
+}
+.footer-col a:hover{color:var(--gold);}
+.footer-bottom{
+  display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;
+}
+.footer-copy{font-size:11px;font-family:'DM Mono',monospace;color:var(--mist);}
+.footer-legal{display:flex;gap:20px;}
+.footer-legal a{font-size:11px;font-family:'DM Mono',monospace;color:var(--mist);text-decoration:none;transition:color .2s;}
+.footer-legal a:hover{color:var(--stone);}
+
+/* ═══════════════════════════════════════════════════ MODAL */
+.modal-bg{
+  position:fixed;inset:0;z-index:600;display:none;
+  align-items:center;justify-content:center;padding:20px;
+  background:rgba(6,6,10,.92);backdrop-filter:blur(20px);
+}
+.modal-bg.on{display:flex;}
+.modal{
+  width:100%;max-width:380px;background:var(--ink2);
+  border:1px solid var(--line2);
+  animation:mIn .35s cubic-bezier(0.16,1,0.3,1);
+}
+.modal-accent{height:2px;background:linear-gradient(90deg,var(--green-lo),var(--green),var(--green-lo));}
+.modal-head{
+  display:flex;justify-content:space-between;align-items:flex-start;
+  padding:24px 24px 16px;border-bottom:1px solid var(--line);
+}
+.modal-ey{
+  font-size:9px;letter-spacing:.28em;text-transform:uppercase;
+  font-family:'DM Mono',monospace;color:var(--gold);margin-bottom:5px;
+}
+.modal-ttl{
+  font-family:'Playfair Display',serif;font-size:26px;font-weight:400;color:var(--white);
+}
+.modal-x{
+  background:none;border:none;color:var(--stone);font-size:16px;
+  cursor:none;padding:4px;transition:color .2s;
+}
+.modal-x:hover{color:var(--cream);}
+.modal-body{padding:24px;}
+.m-field{margin-bottom:16px;}
+.m-lbl{
+  display:block;font-size:9px;letter-spacing:.22em;text-transform:uppercase;
+  font-family:'DM Mono',monospace;color:var(--stone);margin-bottom:7px;
+}
+.m-inp{
+  width:100%;padding:11px 13px;background:var(--ink);border:1px solid var(--line);
+  color:var(--cream);font-family:'Crimson Pro',serif;font-size:16px;outline:none;
+  transition:border-color .2s;
+}
+.m-inp:focus{border-color:var(--green);}
+.m-err{
+  font-size:12px;color:#D48888;background:rgba(136,51,51,.1);
+  border:1px solid rgba(136,51,51,.25);padding:9px 12px;margin-bottom:14px;
+}
+.m-submit{
+  width:100%;padding:13px;background:var(--green);color:var(--white);
+  font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.2em;
+  text-transform:uppercase;border:none;cursor:none;transition:background .2s;
+}
+.m-submit:hover{background:var(--green-hi);}
+.m-switch{text-align:center;font-size:14px;color:var(--stone);margin-top:14px;}
+.m-switch a{color:var(--gold);cursor:none;text-decoration:underline;}
+
+/* ═══════════════════════════════════════════════════ SCROLL REVEAL */
+.sr{opacity:0;transform:translateY(24px);transition:opacity .8s cubic-bezier(0.16,1,0.3,1),transform .8s cubic-bezier(0.16,1,0.3,1);}
+.sr.in{opacity:1;transform:translateY(0);}
+
+/* ═══════════════════════════════════════════════════ ANIMATIONS */
+@keyframes ticker{from{transform:translateX(0);}to{transform:translateX(-50%);}}
+@keyframes ldot{0%,100%{transform:scale(1);opacity:.7;}50%{transform:scale(1.5);opacity:.2;}}
+@keyframes mIn{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+@keyframes brandIn{from{opacity:0;transform:translateY(40px);}to{opacity:1;transform:translateY(0);}}
+</style>
+</head>
+<body>
+
+<!-- CURSOR -->
+<div id="C"></div>
+<div class="CR" id="CR"></div>
+
+<!-- NAV -->
+<nav id="nav">
+  <a class="nav-brand" href="#">
+    <div class="nav-brand-mark">N</div>
+    NoAI&nbsp;<span style="color:var(--gold)">Rephrase</span>
+  </a>
+  <div class="nav-mid">
+    <a href="#features">Features</a>
+    <a href="#how">Pipeline</a>
+    <a href="#research">Research</a>
+    <a href="#pricing">Pricing</a>
+  </div>
+  <div class="nav-right">
+    <button class="theme-btn" id="theme-btn" onclick="toggleTheme()">☽</button>
+    <button class="btn-sign" onclick="openModal()">Sign in</button>
+    <button class="btn-start" onclick="openModal()">Get started</button>
+  </div>
+</nav>
+
+<!-- MASTHEAD -->
+<section class="masthead">
+  <div class="masthead-bg"></div>
+  <div class="brand-statement" style="animation:brandIn 1s .1s both;">
+    <div class="brand-line-top">
+      <h1 class="brand-name-huge">
+        NoAI<br/><em>Rephrase.</em>
+      </h1>
+      <div class="brand-side">
+        <p class="brand-tagline">Write like a human.<br/>Think like a researcher.</p>
+        <p class="brand-year">EST. 2025 — V.3</p>
+      </div>
+    </div>
+    <div class="brand-meta-row" style="margin-top:28px;">
+      <span class="brand-descriptor">AI Text Humanizer</span>
+      <div class="hero-cta-row">
+        <button class="hero-cta" onclick="document.getElementById('tool').scrollIntoView({behavior:'smooth'})">Start humanizing</button>
+        <button class="hero-cta-ghost" onclick="document.getElementById('research').scrollIntoView({behavior:'smooth'})">Research Mode →</button>
+      </div>
+    </div>
+  </div>
+  <!-- Stats strip -->
+  <div class="stats-strip" style="animation:brandIn 1s .4s both;">
+    <div class="stats-strip-item">
+      <div class="stats-strip-num">3</div>
+      <div class="stats-strip-label">Pipeline Steps</div>
+    </div>
+    <div class="stats-strip-item">
+      <div class="stats-strip-num">8</div>
+      <div class="stats-strip-label">Human Dimensions</div>
+    </div>
+    <div class="stats-strip-item">
+      <div class="stats-strip-num">100+</div>
+      <div class="stats-strip-label">Papers Analysed</div>
+    </div>
+    <div class="stats-strip-item">
+      <div class="stats-strip-num">&lt;78%</div>
+      <div class="stats-strip-label">Similarity Target</div>
+    </div>
+  </div>
+</section>
+
+<!-- TICKER -->
+<div class="ticker">
+  <div class="ticker-inner" id="ticker-inner">
+    <span class="ticker-item"><span class="ticker-dot"></span>Burstiness Engine</span>
+    <span class="ticker-item"><span class="ticker-dot"></span>Research Paper Mode</span>
+    <span class="ticker-item"><span class="ticker-dot"></span>Simplify → Rephrase Pipeline</span>
+    <span class="ticker-item"><span class="ticker-dot"></span>Plagiarism Safe</span>
+    <span class="ticker-item"><span class="ticker-dot"></span>8 Humanization Dimensions</span>
+    <span class="ticker-item"><span class="ticker-dot"></span>Academic Tone Calibration</span>
+    <span class="ticker-item"><span class="ticker-dot"></span>Gemini 1.5 Flash</span>
+    <span class="ticker-item"><span class="ticker-dot"></span>Entity Preservation</span>
+    <span class="ticker-item"><span class="ticker-dot"></span>Burstiness Engine</span>
+    <span class="ticker-item"><span class="ticker-dot"></span>Research Paper Mode</span>
+    <span class="ticker-item"><span class="ticker-dot"></span>Simplify → Rephrase Pipeline</span>
+    <span class="ticker-item"><span class="ticker-dot"></span>Plagiarism Safe</span>
+    <span class="ticker-item"><span class="ticker-dot"></span>8 Humanization Dimensions</span>
+    <span class="ticker-item"><span class="ticker-dot"></span>Academic Tone Calibration</span>
+    <span class="ticker-item"><span class="ticker-dot"></span>Gemini 1.5 Flash</span>
+    <span class="ticker-item"><span class="ticker-dot"></span>Entity Preservation</span>
+  </div>
+</div>
+
+<!-- TOOL -->
+<div id="tool"></div>
+<section class="tool-section">
+  <div class="tool-header">
+    <div class="tool-header-left">
+      <div class="tool-eyebrow">Humanization Engine</div>
+      <div class="tool-title">Paste. Simplify. Rephrase. Done.</div>
+    </div>
+    <div class="tool-header-right">
+      <!-- Mode tabs -->
+      <div class="pipe-tabs" id="mode-tabs">
+        <button class="pipe-tab on" data-m="standard" onclick="setMode('standard',this)">Standard</button>
+        <button class="pipe-tab" data-m="aggressive" onclick="setMode('aggressive',this)">Aggressive</button>
+        <button class="pipe-tab" data-m="research" onclick="setMode('research',this)">Research <span class="r-badge">New</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8 pills -->
+  <div class="eight-pills" id="epills">
+    <div class="e-pill lit">Burstiness</div>
+    <div class="e-pill lit">Sent. Variation</div>
+    <div class="e-pill lit">Mixed Vocab</div>
+    <div class="e-pill lit">Personal Tone</div>
+    <div class="e-pill lit">Minor Imperfection</div>
+    <div class="e-pill lit">No Repeat Patterns</div>
+    <div class="e-pill lit">Specificity</div>
+    <div class="e-pill lit">Tone Shifts</div>
+  </div>
+
+  <!-- Controls -->
+  <div class="ctrl-row">
+    <span class="ctrl-label">Intensity</span>
+    <div class="ctrl-seg">
+      <button class="ctrl-seg-btn on" onclick="setIntensity('low',this)">Low</button>
+      <button class="ctrl-seg-btn" onclick="setIntensity('med',this)">Medium</button>
+      <button class="ctrl-seg-btn" onclick="setIntensity('high',this)">High</button>
+    </div>
+    <span class="ctrl-label">Tone</span>
+    <select class="ctrl-sel" id="tone-sel">
+      <option>Casual</option>
+      <option>Professional</option>
+      <option>Academic</option>
+      <option>Technical</option>
+    </select>
+    <span style="margin-left:auto;font-size:10px;font-family:'DM Mono',monospace;color:var(--mist);">
+      ⌘↵ to humanize
+    </span>
+  </div>
+
+  <!-- Pipeline steps visual -->
+  <div class="pipeline-steps" id="pipe-steps">
+    <div class="pipe-step active" id="ps0">
+      <span class="pipe-step-num">00</span>
+      <span class="pipe-step-name">Input</span>
+    </div>
+    <span class="pipe-sep">→</span>
+    <div class="pipe-step" id="ps1">
+      <span class="pipe-step-num">01</span>
+      <span class="pipe-step-name">Extract Anchors</span>
+    </div>
+    <span class="pipe-sep">→</span>
+    <div class="pipe-step" id="ps2">
+      <span class="pipe-step-num">02</span>
+      <span class="pipe-step-name">Simplify</span>
+    </div>
+    <span class="pipe-sep">→</span>
+    <div class="pipe-step" id="ps3">
+      <span class="pipe-step-num">03</span>
+      <span class="pipe-step-name">Rephrase</span>
+    </div>
+    <span class="pipe-sep">→</span>
+    <div class="pipe-step" id="ps4">
+      <span class="pipe-step-num">04</span>
+      <span class="pipe-step-name">Validate</span>
+    </div>
+    <span class="pipe-sep">→</span>
+    <div class="pipe-step" id="ps5">
+      <span class="pipe-step-num">05</span>
+      <span class="pipe-step-name">Output</span>
+    </div>
+  </div>
+
+  <!-- Editor panels -->
+  <div class="editors">
+    <!-- Input -->
+    <div class="editor-pane" id="input-pane">
+      <div class="pane-head">
+        <span class="pane-label">Input</span>
+        <span class="pane-meta" id="wc-disp">0 / 300 words</span>
+      </div>
+      <textarea class="main-ta" id="main-input" placeholder="Paste your AI-generated text, research draft, or any content you want to humanize…" oninput="onInput()"></textarea>
+      <div class="pane-foot">
+        <span class="pane-foot-left" id="mode-hint-text">Standard mode — balanced humanization across all 8 dimensions</span>
+      </div>
+    </div>
+    <!-- Output -->
+    <div class="editor-pane" id="output-pane">
+      <div class="pane-head">
+        <span class="pane-label">Humanized Output</span>
+        <button class="copy-btn-sm" id="copy-btn" style="display:none" onclick="doCopy()">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="1"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          Copy
+        </button>
+      </div>
+      <div id="output-area">
+        <div class="output-empty">
+          <div class="output-empty-brand">NoAI Rephrase</div>
+          <div class="output-empty-sub">Your humanized output will appear here</div>
+        </div>
+      </div>
+      <!-- Simplified intermediate strip -->
+      <div class="simp-strip" id="simp-strip">
+        <div class="simp-strip-inner">
+          <div class="simp-strip-label">Step 02 — Simplified Intermediate</div>
+          <div class="simp-strip-text" id="simp-text">—</div>
+        </div>
+      </div>
+      <div class="pane-foot">
+        <button class="simp-toggle-btn" id="simp-toggle-btn" style="display:none" onclick="toggleSimp()">Show simplified step ↓</button>
+        <span style="font-size:10px;font-family:'DM Mono',monospace;color:var(--mist);" id="out-wc"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Humanize button -->
+  <div class="humanize-row">
+    <button class="btn-hum" id="hum-btn" onclick="doHumanize()" disabled>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      Humanize
+    </button>
+    <span class="hum-shortcut">⌘ + Enter</span>
+  </div>
+</section>
+
+<!-- DASHBOARD -->
+<div class="dashboard" id="dashboard" style="display:none;">
+  <div class="dash-divider">
+    <div class="dash-div-line"></div>
+    <span class="dash-div-text">Analysis Dashboard</span>
+    <div class="dash-div-line"></div>
+  </div>
+
+  <!-- Main score dashboard -->
+  <div class="score-dashboard">
+    <!-- Before score -->
+    <div class="dash-panel">
+      <div class="dash-panel-label">AI Score — Before</div>
+      <div class="score-before-num" id="score-before-num" style="color:var(--red);">—</div>
+      <div class="score-sub-row">
+        <span class="score-change-label">Original text</span>
+        <span id="score-before-lbl" style="font-size:11px;font-family:'DM Mono',monospace;color:var(--stone);">—</span>
+      </div>
+      <div class="score-bar-wrap">
+        <div class="score-bar-label">
+          <span>0%</span><span>AI Likelihood</span><span>100%</span>
+        </div>
+        <div class="score-bar-track">
+          <div class="score-bar-fill" id="sbar-before" style="width:0%;background:var(--red);"></div>
+        </div>
+      </div>
+    </div>
+    <!-- After score with gauge -->
+    <div class="dash-panel">
+      <div class="dash-panel-label">AI Score — After</div>
+      <div class="score-after-num" id="score-after-num" style="color:var(--green-hi);">—</div>
+      <div class="score-sub-row">
+        <span class="score-change-label">Humanized text</span>
+        <span id="score-after-lbl" style="font-size:11px;font-family:'DM Mono',monospace;color:var(--stone);">—</span>
+      </div>
+      <div class="score-bar-wrap">
+        <div class="score-bar-label">
+          <span>0%</span><span>AI Likelihood</span><span>100%</span>
+        </div>
+        <div class="score-bar-track">
+          <div class="score-bar-fill" id="sbar-after" style="width:0%;background:var(--green);"></div>
+        </div>
+      </div>
+      <div style="margin-top:14px;">
+        <svg class="gauge-svg" viewBox="0 0 160 90" id="gauge-svg">
+          <defs>
+            <linearGradient id="gaugeGrad" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="#1A6B44"/>
+              <stop offset="50%" stop-color="#8B6020"/>
+              <stop offset="100%" stop-color="#883333"/>
+            </linearGradient>
+          </defs>
+          <path d="M10 80 A70 70 0 0 1 150 80" fill="none" stroke="var(--ink5)" stroke-width="8" stroke-linecap="round"/>
+          <path d="M10 80 A70 70 0 0 1 150 80" fill="none" stroke="url(#gaugeGrad)" stroke-width="8" stroke-linecap="round" opacity=".35"/>
+          <line id="gauge-needle" x1="80" y1="80" x2="80" y2="20" stroke="var(--gold)" stroke-width="2" stroke-linecap="round" style="transform-origin:80px 80px;transition:transform 1.2s cubic-bezier(0.4,0,0.2,1);"/>
+          <circle cx="80" cy="80" r="4" fill="var(--gold)"/>
+          <text x="10" y="88" font-size="8" fill="var(--green-hi)" font-family="DM Mono,monospace">Human</text>
+          <text x="118" y="88" font-size="8" fill="var(--red)" font-family="DM Mono,monospace">AI</text>
+        </svg>
+        <div class="gauge-verdict" id="gauge-verdict">—</div>
+      </div>
+    </div>
+    <!-- Mini stats right panel -->
+    <div class="mini-stats">
+      <div class="mini-stat-row">
+        <div>
+          <div class="mini-stat-label">Reduction</div>
+          <div class="mini-stat-val" id="ms-delta">—</div>
+        </div>
+        <div id="ms-delta-badge" class="mini-stat-badge good" style="display:none">—</div>
+      </div>
+      <div class="mini-stat-row">
+        <div>
+          <div class="mini-stat-label">Similarity</div>
+          <div class="mini-stat-val" id="ms-sim">—</div>
+        </div>
+        <div id="ms-sim-badge" class="mini-stat-badge good" style="display:none">—</div>
+      </div>
+      <div class="mini-stat-row">
+        <div>
+          <div class="mini-stat-label">Words Changed</div>
+          <div class="mini-stat-val" id="ms-words">—</div>
+        </div>
+      </div>
+      <div class="mini-stat-row">
+        <div>
+          <div class="mini-stat-label">Plagiarism Risk</div>
+          <div class="mini-stat-val" id="ms-plag">—</div>
+        </div>
+        <div id="ms-plag-badge" class="mini-stat-badge good" style="display:none">—</div>
+      </div>
+      <div class="mini-stat-row">
+        <div>
+          <div class="mini-stat-label">Mode Used</div>
+          <div class="mini-stat-val" id="ms-mode" style="font-size:16px;font-family:'DM Mono',monospace;margin-top:4px;text-transform:capitalize;">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Diff -->
+  <div class="diff-section">
+    <div class="diff-head" id="diff-head" onclick="toggleDiff()">
+      <span class="diff-head-label">Word-level diff view</span>
+      <span class="diff-chev" id="diff-chev">▼</span>
+    </div>
+    <div class="diff-body" id="diff-body">
+      <div class="diff-inner" id="diff-inner">—</div>
+      <div class="diff-legend-row">
+        <div class="diff-leg"><div class="diff-leg-sw" style="background:rgba(26,107,68,.22)"></div>Added</div>
+        <div class="diff-leg"><div class="diff-leg-sw" style="background:rgba(136,51,51,.18)"></div>Removed</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Nudge -->
+  <div class="nudge-bar" id="nudge-bar">
+    <div>
+      <p>Save history &amp; unlock all modes</p>
+      <p>Free account — 300 words/day, no card required.</p>
+    </div>
+    <button class="btn-nudge" onclick="openModal()">Sign up free</button>
+  </div>
+</div>
+
+<!-- 8 FEATURES -->
+<section class="features-block" id="features">
+  <div class="fb-inner">
+    <div class="fb-header sr">
+      <div class="fb-h-left">
+        <div class="fb-eyebrow">Humanization System</div>
+        <div class="fb-title">8 dimensions.<br/>Applied simultaneously.</div>
+      </div>
+      <div class="fb-h-right">
+        <p class="fb-desc">Every output is scored and tuned across all eight human-writing characteristics in a single pass. Not one at a time — all at once, calibrated for your chosen mode.</p>
+      </div>
+    </div>
+    <div class="fb-grid">
+      <div class="fb-item sr"><div class="fb-num">01</div><div class="fb-rule"></div><div class="fb-name">Predictability &amp; Burstiness</div><div class="fb-body">Humans are random. We inject controlled chaos — short punches, 40-word expansions, abrupt stops — that detection models can't pattern-match.</div></div>
+      <div class="fb-item sr"><div class="fb-num">02</div><div class="fb-rule"></div><div class="fb-name">Sentence Variation</div><div class="fb-body">No two consecutive sentences share grammatical structure. Subject-first, clause-first, question, fragment, conjunction-start — rotated by algorithm.</div></div>
+      <div class="fb-item sr"><div class="fb-num">03</div><div class="fb-rule"></div><div class="fb-name">Mixed Vocabulary</div><div class="fb-body">Sophisticated terms followed immediately by plain everyday language. Intentionally uneven register. Real writers never maintain perfect vocabulary consistency.</div></div>
+      <div class="fb-item sr"><div class="fb-num">04</div><div class="fb-rule"></div><div class="fb-name">Tone &amp; Voice</div><div class="fb-body">Slight personality leaks through. Hedging, mild opinions, rhetorical questions. AI makes everything neutral — we break that deliberately.</div></div>
+      <div class="fb-item sr"><div class="fb-num">05</div><div class="fb-rule"></div><div class="fb-name">Grammar Imperfection</div><div class="fb-body">Natural comma splices, deliberate fragments, em-dash thought breaks. Real writers are not perfect — and AI detectors have learned this signal.</div></div>
+      <div class="fb-item sr"><div class="fb-num">06</div><div class="fb-rule"></div><div class="fb-name">Non-Repetitive Patterns</div><div class="fb-body">Never the same opener twice. No Furthermore / Moreover / Additionally chains. Each paragraph has a structurally different feel.</div></div>
+      <div class="fb-item sr"><div class="fb-num">07</div><div class="fb-rule"></div><div class="fb-name">Specificity</div><div class="fb-body">No vague claims without a concrete anchor. Mild observations surface naturally. Never broad, never generic — always anchored to something real.</div></div>
+      <div class="fb-item sr"><div class="fb-num">08</div><div class="fb-rule"></div><div class="fb-name">Tone Shifts</div><div class="fb-body">Some sentences are stronger. Some paragraphs more casual. Uneven quality is a human signal — we engineer it deliberately, not accidentally.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="hiw" id="how">
+  <div class="hiw-inner">
+    <div class="hiw-left sr">
+      <div class="hiw-eyebrow">Pipeline</div>
+      <h2 class="hiw-title">Simplify first.<br/>Then rephrase.</h2>
+      <p class="hiw-sub">Most tools jump straight to rephrasing. We simplify first — stripping complex AI phrasing down to plain meaning — then rephrase from that clean foundation. The result is more natural and less prone to meaning drift.</p>
+      <div class="hiw-steps">
+        <div class="hiw-step"><div class="hiw-step-n">00</div><div><div class="hiw-step-title">Semantic Anchor Extraction</div><div class="hiw-step-body">spaCy dependency parsing extracts every entity, number, name, and date — locking them for preservation across all transformations.</div></div></div>
+        <div class="hiw-step"><div class="hiw-step-n">01</div><div><div class="hiw-step-title">Step 1 — Simplification</div><div class="hiw-step-body">Gemini 1.5 Flash converts complex AI prose into clear plain language at low temperature. No opinions added — just clarity extracted.</div></div></div>
+        <div class="hiw-step"><div class="hiw-step-n">02</div><div><div class="hiw-step-title">Step 2 — Humanization</div><div class="hiw-step-body">The simplified text is rephrased with all 8 human dimensions applied via mode-specific system prompts. Standard, Aggressive, or Research.</div></div></div>
+        <div class="hiw-step"><div class="hiw-step-n">03</div><div><div class="hiw-step-title">Three-Layer Validation</div><div class="hiw-step-body">SBERT cosine similarity check, GPT-2 perplexity scoring, and entity preservation verification — before any output reaches you.</div></div></div>
+      </div>
+    </div>
+    <div class="sr">
+      <div class="pipe-diagram">
+        <div class="pd-card"><div class="pd-tag">Input</div><div class="pd-name">Your AI-Generated Text</div><div class="pd-body">Dense, uniform rhythm, detectable patterns</div></div>
+        <div class="pd-arrow">↓ Extract anchors (entities, numbers, names)</div>
+        <div class="pd-card"><div class="pd-tag">Step 01</div><div class="pd-name">Simplified Form</div><div class="pd-body">Plain language — meaning intact, complexity removed</div></div>
+        <div class="pd-arrow">↓ Apply mode system prompt</div>
+        <div class="pd-card"><div class="pd-tag">Step 02 — Standard / Aggressive / Research</div><div class="pd-name">Human Rephrasing</div><div class="pd-body">All 8 dimensions applied via Gemini 1.5 Flash</div></div>
+        <div class="pd-arrow">↓ Three-layer validation</div>
+        <div class="pd-card"><div class="pd-tag">Validate</div><div class="pd-name">Similarity · Fluency · Entities</div><div class="pd-body">SBERT ≤ 0.88 · GPT-2 perplexity 8–700 · entities intact</div></div>
+        <div class="pd-arrow">↓ Pass or retry (max 3×)</div>
+        <div class="pd-card gold-accent"><div class="pd-tag">Output</div><div class="pd-name">Humanized Text</div><div class="pd-body">Natural, plagiarism-safe, meaning-preserved</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- RESEARCH -->
+<section class="research-block" id="research">
+  <div class="rb-inner">
+    <div class="rb-header sr">
+      <div class="rb-title-block">
+        <div class="rb-badge">Signature Feature</div>
+        <h2 class="rb-title">Research Paper Mode.<br/>Written like a real researcher.</h2>
+      </div>
+      <div class="rb-right">
+        <p class="rb-desc">We analysed 100+ published papers across computational linguistics, cognitive science, social science, and applied mathematics. The Research Paper mode internalises how real academics actually write — not how AI imitates them.</p>
+      </div>
+    </div>
+    <div class="rb-grid">
+      <div class="rb-left sr">
+        <div class="rb-feature"><div class="rb-feat-icon">§1</div><div><div class="rb-feat-title">Academic Burstiness</div><div class="rb-feat-body">Dense 45-word methodological sentences broken by blunt 9-word claims. The rhythm of real papers — not AI uniformity.</div></div></div>
+        <div class="rb-feature"><div class="rb-feat-icon">§2</div><div><div class="rb-feat-title">Epistemic Hedging</div><div class="rb-feat-body">"appears to", "is broadly consistent with", "warrants careful consideration" — the precise hedging language of peer-reviewed science.</div></div></div>
+        <div class="rb-feature"><div class="rb-feat-icon">§3</div><div><div class="rb-feat-title">Section-Level Voice</div><div class="rb-feat-body">Intro is declarative. Methods are technical. Discussion is reflective. Conclusion is honest about limits. Each section sounds different — by design.</div></div></div>
+        <div class="rb-feature"><div class="rb-feat-icon">§4</div><div><div class="rb-feat-title">Academic Personality</div><div class="rb-feat-body">"The data compel a different reading." Real researchers have a point of view. We carry that into your paper without fabricating anything.</div></div></div>
+        <div class="rb-feature"><div class="rb-feat-icon">§5</div><div><div class="rb-feat-title">Zero Fabrication</div><div class="rb-feat-body">We never invent statistics, citations, or data. Every number and entity from your original is preserved exactly as written.</div></div></div>
+      </div>
+      <div class="rb-right-pane sr">
+        <div class="paper-mockup">
+          <div class="paper-top">
+            <div class="paper-dot"></div>
+            <span class="paper-title-sm">NoAI Rephrase — Research Paper Mode Output</span>
+          </div>
+          <div class="paper-body">
+            <div class="paper-section">
+              <div class="paper-section-label">Abstract</div>
+              <div class="paper-text">This paper examines the relationship between <em>urban green space density</em> and self-reported wellbeing in metropolitan populations. Drawing on survey data from <em>3,200 participants</em> across four cities, we find that proximity to parks within <em>400 metres</em> of residence is associated with a <em>12.4% increase</em> in reported life satisfaction — a finding broadly consistent with prior literature, though complicated by substantial variation across income quartiles.</div>
+            </div>
+            <div class="paper-section">
+              <div class="paper-section-label">Discussion</div>
+              <div class="paper-text">The results warrant caution. Self-reported wellbeing is notoriously susceptible to reference-group effects and recall bias. Still — and this is worth noting — the pattern holds across three of four sites. What the data do not resolve is whether green space proximity <em>causes</em> improved wellbeing, or whether higher-wellbeing individuals are simply more likely to reside near parks. That selection problem, inter alia, remains unresolved in the broader literature.</div>
+            </div>
+            <div class="paper-section">
+              <div class="paper-section-label">Conclusion</div>
+              <div class="paper-text">We argue that urban planning frameworks should treat green space as a wellbeing infrastructure priority, not merely an aesthetic one. The evidence is imperfect — as it almost always is — but the direction is clear enough to act on, carefully.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="pricing-block" id="pricing">
+  <div class="pricing-inner">
+    <div class="pricing-head sr">
+      <div>
+        <div style="font-size:10px;letter-spacing:.28em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--gold);margin-bottom:12px;">Pricing</div>
+        <h2 class="pricing-title">No surprises.<br/>No complexity.</h2>
+      </div>
+      <p class="pricing-sub">Begin for free. Scale when you need to. All plans include Research Paper Mode.</p>
+    </div>
+    <div class="pricing-grid">
+      <div class="plan sr">
+        <div class="plan-name">Free</div>
+        <div class="plan-price">$0</div>
+        <div style="font-size:13px;color:var(--stone);margin-bottom:4px;">No card required</div>
+        <div class="plan-words">300 words / day</div>
+        <div class="plan-feats">
+          <div class="plan-feat"><span class="plan-feat-chk">✓</span>Standard humanization</div>
+          <div class="plan-feat"><span class="plan-feat-chk">✓</span>AI score dashboard</div>
+          <div class="plan-feat"><span class="plan-feat-chk">✓</span>Diff view</div>
+          <div class="plan-feat"><span class="plan-feat-chk">✓</span>Copy output</div>
+        </div>
+        <button class="plan-cta outline" onclick="openModal()">Start Free</button>
+      </div>
+      <div class="plan feat sr">
+        <div class="plan-badge">Popular</div>
+        <div class="plan-name">Pro</div>
+        <div class="plan-price">$19<span class="plan-per"> / mo</span></div>
+        <div style="font-size:13px;color:var(--stone);margin-bottom:4px;">Billed monthly</div>
+        <div class="plan-words">100,000 words / month</div>
+        <div class="plan-feats">
+          <div class="plan-feat"><span class="plan-feat-chk">✓</span>All 3 humanization modes</div>
+          <div class="plan-feat"><span class="plan-feat-chk">✓</span>Research Paper Mode</div>
+          <div class="plan-feat"><span class="plan-feat-chk">✓</span>Tone selector</div>
+          <div class="plan-feat"><span class="plan-feat-chk">✓</span>Priority processing</div>
+          <div class="plan-feat"><span class="plan-feat-chk">✓</span>Usage analytics</div>
+        </div>
+        <button class="plan-cta solid" onclick="openModal()">Get Pro</button>
+      </div>
+      <div class="plan sr">
+        <div class="plan-name">Agency</div>
+        <div class="plan-price">$79<span class="plan-per"> / mo</span></div>
+        <div style="font-size:13px;color:var(--stone);margin-bottom:4px;">Teams &amp; developers</div>
+        <div class="plan-words">Unlimited words</div>
+        <div class="plan-feats">
+          <div class="plan-feat"><span class="plan-feat-chk">✓</span>Everything in Pro</div>
+          <div class="plan-feat"><span class="plan-feat-chk">✓</span>Full REST API</div>
+          <div class="plan-feat"><span class="plan-feat-chk">✓</span>Team seats (5)</div>
+          <div class="plan-feat"><span class="plan-feat-chk">✓</span>Webhooks</div>
+          <div class="plan-feat"><span class="plan-feat-chk">✓</span>Priority support</div>
+        </div>
+        <button class="plan-cta outline">Contact Sales</button>
+      </div>
+    </div>
+    <p class="sr" style="text-align:center;font-size:10px;font-family:'DM Mono',monospace;color:var(--mist);margin-top:24px;letter-spacing:.1em;">SSL · GDPR · 99.9% uptime · Cancel anytime</p>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-top">
+      <div class="footer-brand-block">
+        <div class="f-name">NoAI <em>Rephrase</em></div>
+        <div class="f-tag">Write like a human. Every time.</div>
+      </div>
+      <div class="footer-cols">
+        <div class="footer-col">
+          <div class="footer-col-head">Product</div>
+          <a href="#">Features</a><a href="#">Research Mode</a><a href="#">API Docs</a><a href="#">Changelog</a>
+        </div>
+        <div class="footer-col">
+          <div class="footer-col-head">Company</div>
+          <a href="#">About</a><a href="#">Pricing</a><a href="#">Blog</a><a href="#">Contact</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span class="footer-copy">© 2025 NoAI Rephrase. All rights reserved.</span>
+      <div class="footer-legal"><a href="#">Privacy</a><a href="#">Terms</a><a href="#">Security</a></div>
+    </div>
+  </div>
+</footer>
+
+<!-- MODAL -->
+<div class="modal-bg" id="modal-bg" onclick="modalBgClick(event)">
+  <div class="modal">
+    <div class="modal-accent"></div>
+    <div class="modal-head">
+      <div><div class="modal-ey">NoAI Rephrase</div><div class="modal-ttl" id="modal-ttl">Sign In</div></div>
+      <button class="modal-x" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="modal-err" class="m-err" style="display:none;"></div>
+      <div class="m-field"><label class="m-lbl">Email</label><input class="m-inp" type="email" placeholder="you@example.com"/></div>
+      <div class="m-field"><label class="m-lbl">Password</label><input class="m-inp" type="password" placeholder="••••••••"/></div>
+      <button class="m-submit" id="modal-btn">Sign In</button>
+      <p class="m-switch">No account? <a onclick="toggleModal()">Sign up free</a></p>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════ STATE */
+let M='standard', inputText='', outputText='', simpText='', simpOpen=false, diffOpen=false, mMode='login', isDark=true;
+const LIMIT=300;
+const HINTS={standard:'Standard mode — balanced humanization across all 8 dimensions',aggressive:'Aggressive mode — maximum burstiness, strong personality, structural chaos',research:'Research Paper mode — academic voice, epistemic hedging, section-level tone variation'};
+const DEMO_AI=`The implementation of artificial intelligence technologies in educational environments has been shown to produce statistically significant improvements in student performance outcomes. Studies indicate that personalized learning systems, powered by machine learning algorithms, are capable of adapting content delivery to match individual cognitive profiles, resulting in enhanced knowledge retention and improved academic achievement across diverse subject domains.`;
+const DEMO_SIMP=`Using AI in schools has shown real improvements in how students learn. Personalized learning systems adapt to each student. This leads to better retention and achievement across subjects.`;
+const DEMO_STD=`AI in classrooms is showing real results — more than skeptics would admit.\n\nThe core finding is fairly consistent: when a learning system actually adapts to how a student thinks, performance improves. Not uniformly, not for every subject, but across the board the pattern holds.\n\nWhat makes it work? Personalization. Generic content delivery treats every student as an identical learner. That assumption is, bluntly, wrong. Systems that track response patterns can catch where a student is struggling before a teacher can — and adjust. Knowledge sticks better when it meets you where you are.`;
+const DEMO_AGG=`AI in schools? The results are in — and they're better than the critics will tell you.\n\nHere's the thing: when a system actually adapts to how a particular student thinks, performance moves. Consistently. Not a little — meaningfully. And it's not just test scores. Retention. Engagement. The whole picture.\n\nGeneric instruction assumes every student is the same learner. It's wrong. Aggressively, obviously wrong. Machine learning systems that track cognitive response can catch failure before teachers can. That's not a claim — that's the data.`;
+const DEMO_RES=`This analysis examines the integration of adaptive artificial intelligence systems within formal educational settings and their measurable effects on student achievement outcomes. The existing literature presents a broadly consistent picture: learning environments employing personalized, algorithm-driven content delivery — systems capable of modulating instructional pacing and difficulty in response to individual cognitive indicators — produce outcomes that compare favourably to conventional undifferentiated approaches.\n\nThe effect sizes reported across studies vary considerably, however, suggesting that implementation fidelity and institutional context mediate the relationship between AI adoption and achievement gains to a non-trivial degree. What the literature has not adequately resolved, inter alia, is the direction of causality: whether adaptive instruction produces improved outcomes, or whether higher-baseline students are simply more likely to engage productively with such systems.`;
+
+/* ═══════════════════════════════════════════════════════ CURSOR */
+const C=document.getElementById('C'),CR=document.getElementById('CR');
+let cx=0,cy=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{cx=e.clientX;cy=e.clientY;C.style.left=cx+'px';C.style.top=cy+'px';});
+(function animCR(){rx+=(cx-rx)*.14;ry+=(cy-ry)*.14;CR.style.left=rx+'px';CR.style.top=ry+'px';requestAnimationFrame(animCR);})();
+document.querySelectorAll('button,a,textarea,select').forEach(el=>{
+  el.addEventListener('mouseenter',()=>{CR.style.width='44px';CR.style.height='44px';CR.style.opacity='.7';});
+  el.addEventListener('mouseleave',()=>{CR.style.width='28px';CR.style.height='28px';CR.style.opacity='.4';});
+});
+
+/* ═══════════════════════════════════════════════════════ SCROLL REVEAL */
+new IntersectionObserver(es=>es.forEach((e,i)=>{
+  if(e.isIntersecting) setTimeout(()=>e.target.classList.add('in'),i*70);
+}),{threshold:.08,rootMargin:'0px 0px -50px 0px'}).observe
+// apply to all .sr
+;document.querySelectorAll('.sr').forEach(el=>new IntersectionObserver((es)=>{if(es[0].isIntersecting) es[0].target.classList.add('in');},{threshold:.08}).observe(el));
+
+/* ═══════════════════════════════════════════════════════ PARALLAX */
+window.addEventListener('scroll',()=>{
+  const y=window.scrollY;
+  document.querySelector('.masthead-bg').style.transform=`translateY(${y*.3}px)`;
+  document.querySelector('.brand-name-huge').style.transform=`translateY(${y*.15}px)`;
+  document.getElementById('nav').style.boxShadow=y>30?'0 2px 30px rgba(0,0,0,.4)':'none';
+});
+
+/* ═══════════════════════════════════════════════════════ THEME */
+function toggleTheme(){
+  isDark=!isDark;
+  document.documentElement.setAttribute('data-theme',isDark?'dark':'light');
+  document.getElementById('theme-btn').textContent=isDark?'☽':'☀';
+}
+
+/* ═══════════════════════════════════════════════════════ MODE */
+function setMode(m,btn){
+  M=m;
+  document.querySelectorAll('.pipe-tab').forEach(t=>{t.classList.remove('on','research-mode');});
+  btn.classList.add('on');
+  if(m==='research') btn.classList.add('research-mode');
+  document.getElementById('mode-hint-text').textContent=HINTS[m];
+  const pills=document.querySelectorAll('.e-pill');
+  const std=['Burstiness','Sent. Variation','Mixed Vocab','Personal Tone','Minor Imperfection','No Repeat Patterns','Specificity','Tone Shifts'];
+  const res=['Academic Burstiness','Authentic Structure','Precise Vocab','Epistemic Hedging','Formal Grammar','Non-Repetitive','Specificity','Section Tone'];
+  const labels=m==='research'?res:std;
+  pills.forEach((p,i)=>{p.textContent=labels[i]||p.textContent;p.className='e-pill '+(m==='research'?'gold-lit':'lit');});
+}
+function setIntensity(v,btn){
+  document.querySelectorAll('.ctrl-seg-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+}
+
+/* ═══════════════════════════════════════════════════════ INPUT */
+let _scoreTimer=null;
+function onInput(){
+  inputText=document.getElementById('main-input').value;
+  const w=inputText.trim()?inputText.trim().split(/\s+/).length:0;
+  const el=document.getElementById('wc-disp');
+  el.textContent=`${w} / ${LIMIT} words`;
+  el.className='pane-meta'+(w>LIMIT?' warn':'');
+  document.getElementById('hum-btn').disabled=w===0;
+  // Live AI score: fires 1.2s after user stops typing (min 30 words)
+  clearTimeout(_scoreTimer);
+  if(w>=30) _scoreTimer=setTimeout(doScoreOnly, 1200);
+}
+document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter')doHumanize();});
+document.getElementById('main-input').addEventListener('focus',function(){if(!this.value){this.value=DEMO_AI;onInput();}});
+
+/* ═══════════════════════════════════════════════════════ COPY */
+function doCopy(){
+  navigator.clipboard.writeText(outputText).then(()=>{
+    const b=document.getElementById('copy-btn');
+    b.innerHTML='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Copied';
+    b.style.color='#68D48A';
+    setTimeout(()=>{b.innerHTML='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="1"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy';b.style.color='var(--gold)';},2000);
+  });
+}
+
+/* ═══════════════════════════════════════════════════════ SIMPLIFIED */
+function toggleSimp(){
+  simpOpen=!simpOpen;
+  document.getElementById('simp-strip').classList.toggle('open',simpOpen);
+  document.getElementById('simp-toggle-btn').textContent=simpOpen?'Hide simplified step ↑':'Show simplified step ↓';
+}
+
+/* ═══════════════════════════════════════════════════════ DIFF */
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function wDiff(a,b){
+  const aw=a.split(/(\s+)/),bw=b.split(/(\s+)/),m=aw.length,n=bw.length;
+  const dp=Array.from({length:m+1},()=>new Array(n+1).fill(0));
+  for(let i=1;i<=m;i++)for(let j=1;j<=n;j++)dp[i][j]=aw[i-1]===bw[j-1]?dp[i-1][j-1]+1:Math.max(dp[i-1][j],dp[i][j-1]);
+  const d=[];let i=m,j=n;
+  while(i>0||j>0){
+    if(i>0&&j>0&&aw[i-1]===bw[j-1]){d.unshift({t:'e',v:aw[i-1]});i--;j--;}
+    else if(j>0&&(i===0||dp[i][j-1]>=dp[i-1][j])){d.unshift({t:'a',v:bw[j-1]});j--;}
+    else{d.unshift({t:'r',v:aw[i-1]});i--;}
+  }
+  return d;
+}
+function renderDiff(a,b){
+  return wDiff(a,b).map(d=>d.t==='e'?`<span>${esc(d.v)}</span>`:d.t==='a'?`<span class="da">${esc(d.v)}</span>`:`<span class="dr">${esc(d.v)}</span>`).join('');
+}
+function toggleDiff(){
+  diffOpen=!diffOpen;
+  document.getElementById('diff-body').classList.toggle('open',diffOpen);
+  document.getElementById('diff-head').classList.toggle('open',diffOpen);
+  document.getElementById('diff-chev').classList.toggle('open',diffOpen);
+}
+
+/* ═══════════════════════════════════════════════════════ GAUGE */
+function setGauge(score){
+  // score 0-100, 0=human(left), 100=AI(right)
+  // needle: 0%→-90deg, 50%→0deg, 100%→90deg
+  const angle=-90+(score/100)*180;
+  document.getElementById('gauge-needle').style.transform=`rotate(${angle}deg)`;
+  const v=score<35?'Reads Human':score<55?'Ambiguous — mixed signals':score<70?'Partially detected':'Likely AI-Generated';
+  document.getElementById('gauge-verdict').textContent=v;
+  document.getElementById('gauge-verdict').style.color=score<35?'var(--green-hi)':score<55?'var(--stone)':score<70?'var(--amber)':'var(--red)';
+}
+
+/* ═══════════════════════════════════════════════════════ SCORE HELPERS */
+function sColor(s){return s<35?'var(--green-hi)':s<65?'var(--amber)':'var(--red)';}
+function animBar(id,val,col){const el=document.getElementById(id);el.style.background=col;el.style.width='0';setTimeout(()=>{el.style.width=val+'%';},80);}
+function setPipeStep(idx){
+  for(let i=0;i<=5;i++){
+    const el=document.getElementById('ps'+i);
+    if(!el)continue;
+    el.classList.remove('active','done');
+    if(i===idx) el.classList.add('active');
+    else if(i<idx) el.classList.add('done');
+  }
+}
+
+/* ═══════════════════════════════════════════════════════ API CONFIG */
+// ⚙️  Change this if your backend runs on a different port or host
+const API_BASE = 'http://localhost:8000';
+
+function _showError(msg){
+  const oa=document.getElementById('output-area');
+  oa.innerHTML=`<div class="output-empty" style="gap:12px;">
+    <div style="color:var(--red);font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.1em;">ERROR</div>
+    <div style="color:var(--stone);font-size:15px;max-width:400px;text-align:center;line-height:1.6;">${esc(msg)}</div>
+    <div style="color:var(--mist);font-size:11px;font-family:'DM Mono',monospace;">Check that the backend is running on ${API_BASE}</div>
+  </div>`;
+  document.getElementById('hum-btn').disabled=false;
+  document.getElementById('hum-btn').innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Humanize';
+}
+
+function _renderDashboard(res){
+  const sb=Math.round(res.ai_score_before);
+  const sa=Math.round(res.ai_score_after);
+  const sim=res.similarity_score;
+  const ch=res.changes_made;
+  const delta=sb-sa;
+  const plagRisk=sim<.72?'Very Low':sim<.80?'Low':sim<.86?'Medium':'High';
+  const plagColor=sim<.72?'var(--green-hi)':sim<.80?'var(--green-hi)':sim<.86?'var(--amber)':'var(--red)';
+  const plagBadgeClass=sim<.72||sim<.80?'good':sim<.86?'warn':'risk';
+
+  document.getElementById('score-before-num').textContent=sb+'%';
+  document.getElementById('score-before-num').style.color=sColor(sb);
+  document.getElementById('score-before-lbl').textContent=sb>70?'Highly detectable':sb>40?'Partially detected':'Low AI signal';
+  document.getElementById('score-after-num').textContent=sa+'%';
+  document.getElementById('score-after-num').style.color=sColor(sa);
+  document.getElementById('score-after-lbl').textContent=sa<35?'Reads as human':sa<55?'Mixed signal':'Still detectable';
+
+  animBar('sbar-before',sb,sColor(sb));
+  animBar('sbar-after',sa,sColor(sa));
+  setTimeout(()=>setGauge(sa),200);
+
+  document.getElementById('ms-delta').textContent=(delta>0?'−':'+')+Math.abs(delta)+'%';
+  document.getElementById('ms-delta').style.color=delta>0?'var(--green-hi)':'var(--red)';
+  const db=document.getElementById('ms-delta-badge');db.style.display='inline-block';db.textContent=delta>0?'Improved':'No change';db.className='mini-stat-badge '+(delta>0?'good':'warn');
+  document.getElementById('ms-sim').textContent=Math.round(sim*100)+'%';
+  const sb2=document.getElementById('ms-sim-badge');sb2.style.display='inline-block';sb2.textContent=sim<.80?'Plagiarism safe':'Check advised';sb2.className='mini-stat-badge '+(sim<.80?'good':'warn');
+  document.getElementById('ms-words').textContent=ch;
+  document.getElementById('ms-plag').textContent=plagRisk;document.getElementById('ms-plag').style.color=plagColor;
+  const pb=document.getElementById('ms-plag-badge');pb.style.display='inline-block';pb.textContent=plagRisk;pb.className='mini-stat-badge '+plagBadgeClass;
+  document.getElementById('ms-mode').textContent=res.mode||M;
+
+  document.getElementById('dashboard').style.display='block';
+  setTimeout(()=>document.getElementById('dashboard').scrollIntoView({behavior:'smooth',block:'nearest'}),100);
+}
+
+/* ═══════════════════════════════════════════════════════ HUMANIZE */
+async function doHumanize(){
+  if(!inputText.trim()) return;
+  const oa=document.getElementById('output-area');
+
+  // — Loading UI —
+  oa.innerHTML=`<div class="loading-panel">
+    <div class="l-dots"><div class="l-dot"></div><div class="l-dot"></div><div class="l-dot"></div></div>
+    <div class="l-step-txt" id="l-step">Step 00 — Extracting anchors</div>
+    <div class="l-note">Processing with NoAI Rephrase…</div>
+  </div>`;
+  document.getElementById('output-pane').classList.remove('output-active');
+  document.getElementById('copy-btn').style.display='none';
+  document.getElementById('dashboard').style.display='none';
+  document.getElementById('hum-btn').disabled=true;
+  document.getElementById('hum-btn').textContent='Humanizing…';
+
+  // Animate pipeline step labels while waiting
+  setPipeStep(0);
+  const stepTxts=['Step 00 — Extracting semantic anchors','Step 01 — Simplifying content','Step 02 — Rephrasing with human voice','Step 03 — Validating output','Step 04 — Finalising'];
+  let si=0;
+  const stepInt=setInterval(()=>{
+    si++;if(si>=stepTxts.length){clearInterval(stepInt);return;}
+    setPipeStep(si);
+    const el=document.getElementById('l-step');
+    if(el) el.textContent=stepTxts[si];
+  },1800); // slower — real API takes time
+
+  // — Real API call —
+  let res;
+  try{
+    const resp=await fetch(`${API_BASE}/api/humanize`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({text:inputText,mode:M})
+    });
+    if(!resp.ok){
+      const err=await resp.json().catch(()=>({detail:'Server error '+resp.status}));
+      throw new Error(err.detail||'Request failed ('+resp.status+')');
+    }
+    res=await resp.json();
+  }catch(e){
+    clearInterval(stepInt);
+    _showError(e.message||'Could not reach the backend. Is it running?');
+    return;
+  }
+
+  clearInterval(stepInt);
+  setPipeStep(5);
+
+  // — Render output —
+  outputText=res.humanized;
+  simpText=res.simplified||'(not returned)';
+  const outWc=outputText.trim().split(/\s+/).length;
+
+  oa.innerHTML=`<div class="output-text">${esc(outputText).replace(/\n\n/g,'<br/><br/>')}</div>`;
+  document.getElementById('output-pane').classList.add('output-active');
+  document.getElementById('copy-btn').style.display='flex';
+  document.getElementById('out-wc').textContent=outWc+' words';
+  document.getElementById('simp-text').textContent=simpText;
+  document.getElementById('simp-toggle-btn').style.display='block';
+
+  // — Diff —
+  document.getElementById('diff-inner').innerHTML=renderDiff(inputText,outputText);
+
+  // — Dashboard —
+  _renderDashboard(res);
+
+  document.getElementById('hum-btn').disabled=false;
+  document.getElementById('hum-btn').innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Humanize';
+}
+
+/* ═══════════════════════════════════════════════════════ SCORE ONLY */
+async function doScoreOnly(){
+  if(!inputText.trim()) return;
+  try{
+    const resp=await fetch(`${API_BASE}/api/score`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({text:inputText})
+    });
+    if(!resp.ok) return;
+    const data=await resp.json();
+    // Show live score in the before-score card
+    const sb=Math.round(data.score);
+    document.getElementById('score-before-num').textContent=sb+'%';
+    document.getElementById('score-before-num').style.color=sColor(sb);
+    document.getElementById('score-before-lbl').textContent=data.label;
+    animBar('sbar-before',sb,sColor(sb));
+    document.getElementById('dashboard').style.display='block';
+  }catch(e){/* silent fail for live score */}
+}
+
+/* ═══════════════════════════════════════════════════════ MODAL */
+function openModal(){document.getElementById('modal-bg').classList.add('on');}
+function closeModal(){document.getElementById('modal-bg').classList.remove('on');}
+function modalBgClick(e){if(e.target===document.getElementById('modal-bg'))closeModal();}
+function toggleModal(){
+  mMode=mMode==='login'?'signup':'login';
+  document.getElementById('modal-ttl').textContent=mMode==='login'?'Sign In':'Create Account';
+  document.getElementById('modal-btn').textContent=mMode==='login'?'Sign In':'Create Account';
+  document.querySelector('.m-switch').innerHTML=mMode==='login'?'No account? <a onclick="toggleModal()">Sign up free</a>':'Have one? <a onclick="toggleModal()">Sign in</a>';
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+</script>
+</body>
+</html>
